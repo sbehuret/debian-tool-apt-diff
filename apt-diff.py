@@ -182,6 +182,9 @@ def save_apt_snapshot_from_system(directory):
     with open(directory + os.path.sep + 'holds', 'w') as file:
         subprocess.run(('/bin/sh', '-c', 'apt-mark showhold'), stdout=file)
 
+    with open(directory + os.path.sep + 'osversion', 'w') as file, open(os.devnull, 'w') as devnull:
+       subprocess.run(('/bin/sh', '-c', 'lsb_release -sd'), stdout=file, stderr=devnull)
+
 def load_apt_snapshot(directory):
     apt_snapshot = {}
 
@@ -205,6 +208,9 @@ def load_apt_snapshot(directory):
 
     with open(directory + os.path.sep + 'holds', 'r') as file:
         apt_snapshot['holds'] = file.read()
+
+    with open(directory + os.path.sep + 'osversion', 'r') as file:
+        apt_snapshot['osversion'] = file.read()
 
     _process_apt_snapshot(apt_snapshot)
 

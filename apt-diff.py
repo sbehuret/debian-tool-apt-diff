@@ -133,7 +133,7 @@ def _process_apt_output_simple(output):
     return {key: None for key in output.rstrip('\n').split('\n')}
 
 def _process_apt_snapshot(apt_snapshot):
-    apt_snapshot['osversion'] = apt_snapshot['osversion'].strip('"').strip(' ')
+    apt_snapshot['osversion'] = apt_snapshot['osversion'].rstrip('\n').strip('"').strip(' ')
     apt_snapshot['selections'] = _process_apt_output_advanced(apt_snapshot['selections'], '\t', 0)
     apt_snapshot['seldetails'] = _process_apt_output_advanced(apt_snapshot['seldetails'], ' ', 1, maxfield=4)
     apt_snapshot['selversions'] = _process_apt_output_advanced(apt_snapshot['selversions'], '\t', 0)

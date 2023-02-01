@@ -14,9 +14,9 @@ def cmdline_args():
     p.add_argument('action', choices=('compare', 'save'), nargs='?', default='compare', help='compare two APT snapshots or save APT snapshot')
     p.add_argument('target', nargs='?', default=os.getcwd(), help='target APT snapshot, defaults to current directory')
     p.add_argument('source', nargs='?', default=None, help='source APT snapshot, defaults to current system')
-    p.add_argument('-s', '--summary', default=False, action='store_true', help="APT snapshot comparison summary")
-    p.add_argument('-f', '--filter', default=False, action='store_true', help="filter APT snapshot comparison")
-    p.add_argument('-r', '--reverse', default=False, action='store_true', help="reverse APT snapshot comparison")
+    p.add_argument('-s', '--summary', default=False, action='store_true', help='APT snapshot comparison summary')
+    p.add_argument('-f', '--filter', default=False, action='store_true', help='filter APT snapshot comparison')
+    p.add_argument('-r', '--reverse', default=False, action='store_true', help='reverse APT snapshot comparison')
 
     return(p.parse_args())
 
@@ -133,6 +133,7 @@ def _process_apt_output_simple(output):
     return {key: None for key in output.rstrip('\n').split('\n')}
 
 def _process_apt_snapshot(apt_snapshot):
+    apt_snapshot['osversion'] = apt_snapshot['osversion'].strip('"').strip(' ')
     apt_snapshot['selections'] = _process_apt_output_advanced(apt_snapshot['selections'], '\t', 0)
     apt_snapshot['seldetails'] = _process_apt_output_advanced(apt_snapshot['seldetails'], ' ', 1, maxfield=4)
     apt_snapshot['selversions'] = _process_apt_output_advanced(apt_snapshot['selversions'], '\t', 0)
@@ -146,6 +147,7 @@ def _process_apt_snapshot(apt_snapshot):
 def get_apt_snapshot_from_system():
     with open(os.devnull, 'w') as devnull:
         apt_snapshot = {
+            'osversion': subprocess.run(('/bin/sh', '-c', 'lsb_release -ds'), stdout=subprocess.PIPE, stderr=devnull).stdout.decode('utf-8'),
             'selections': subprocess.run(('/bin/sh', '-c', 'dpkg --get-selections'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
             'seldetails': subprocess.run(('/bin/sh', '-c', 'dpkg -l | grep -P \'^\w+ \''), stdout=subprocess.PIPE).stdout.decode('utf-8'),
             'selversions': subprocess.run(('/bin/sh', '-c', 'dpkg-query -W'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
@@ -153,7 +155,6 @@ def get_apt_snapshot_from_system():
             'autos': subprocess.run(('/bin/sh', '-c', 'apt-mark showauto'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
             'manuals': subprocess.run(('/bin/sh', '-c', 'apt-mark showmanual'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
             'holds': subprocess.run(('/bin/sh', '-c', 'apt-mark showhold'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-            'osversion': subprocess.run(('/bin/sh', '-c', 'lsb_release -ds'), stdout=subprocess.PIPE, stderr=devnull).stdout.decode('utf-8'),
         }
 
     _process_apt_snapshot(apt_snapshot)
@@ -162,6 +163,9 @@ def get_apt_snapshot_from_system():
 
 def save_apt_snapshot_from_system(directory):
     subprocess.run(('/bin/sh', '-c', 'mkdir -p ' + shlex.quote(directory)))
+
+    with open(directory + os.path.sep + 'osversion', 'w') as file, open(os.devnull, 'w') as devnull:
+       subprocess.run(('/bin/sh', '-c', 'lsb_release -ds'), stdout=file, stderr=devnull)
 
     with open(directory + os.path.sep + 'selections', 'w') as file:
         subprocess.run(('/bin/sh', '-c', 'dpkg --get-selections'), stdout=file)
@@ -184,11 +188,11 @@ def save_apt_snapshot_from_system(directory):
     with open(directory + os.path.sep + 'holds', 'w') as file:
         subprocess.run(('/bin/sh', '-c', 'apt-mark showhold'), stdout=file)
 
-    with open(directory + os.path.sep + 'osversion', 'w') as file, open(os.devnull, 'w') as devnull:
-       subprocess.run(('/bin/sh', '-c', 'lsb_release -ds'), stdout=file, stderr=devnull)
-
 def load_apt_snapshot(directory):
     apt_snapshot = {}
+
+    with open(directory + os.path.sep + 'osversion', 'r') as file:
+        apt_snapshot['osversion'] = file.read()
 
     with open(directory + os.path.sep + 'selections', 'r') as file:
         apt_snapshot['selections'] = file.read()
@@ -210,9 +214,6 @@ def load_apt_snapshot(directory):
 
     with open(directory + os.path.sep + 'holds', 'r') as file:
         apt_snapshot['holds'] = file.read()
-
-    with open(directory + os.path.sep + 'osversion', 'r') as file:
-        apt_snapshot['osversion'] = file.read()
 
     _process_apt_snapshot(apt_snapshot)
 

@@ -144,15 +144,17 @@ def _process_apt_snapshot(apt_snapshot):
     return apt_snapshot
 
 def get_apt_snapshot_from_system():
-    apt_snapshot = {
-        'selections': subprocess.run(('/bin/sh', '-c', 'dpkg --get-selections'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-        'seldetails': subprocess.run(('/bin/sh', '-c', 'dpkg -l | grep -P \'^\w+ \''), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-        'selversions': subprocess.run(('/bin/sh', '-c', 'dpkg-query -W'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-        'obsconffiles': subprocess.run(('/bin/sh', '-c', 'dpkg-query -W -f=\'${Conffiles}\n\' | grep -P \' obsolete$\''), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-        'autos': subprocess.run(('/bin/sh', '-c', 'apt-mark showauto'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-        'manuals': subprocess.run(('/bin/sh', '-c', 'apt-mark showmanual'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-        'holds': subprocess.run(('/bin/sh', '-c', 'apt-mark showhold'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-    }
+    with open(os.devnull, 'w') as devnull:
+        apt_snapshot = {
+            'selections': subprocess.run(('/bin/sh', '-c', 'dpkg --get-selections'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
+            'seldetails': subprocess.run(('/bin/sh', '-c', 'dpkg -l | grep -P \'^\w+ \''), stdout=subprocess.PIPE).stdout.decode('utf-8'),
+            'selversions': subprocess.run(('/bin/sh', '-c', 'dpkg-query -W'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
+            'obsconffiles': subprocess.run(('/bin/sh', '-c', 'dpkg-query -W -f=\'${Conffiles}\n\' | grep -P \' obsolete$\''), stdout=subprocess.PIPE).stdout.decode('utf-8'),
+            'autos': subprocess.run(('/bin/sh', '-c', 'apt-mark showauto'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
+            'manuals': subprocess.run(('/bin/sh', '-c', 'apt-mark showmanual'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
+            'holds': subprocess.run(('/bin/sh', '-c', 'apt-mark showhold'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
+            'osversion': subprocess.run(('/bin/sh', '-c', 'lsb_release -ds'), stdout=subprocess.PIPE, stderr=devnull).stdout.decode('utf-8'),
+        }
 
     _process_apt_snapshot(apt_snapshot)
 
@@ -183,7 +185,7 @@ def save_apt_snapshot_from_system(directory):
         subprocess.run(('/bin/sh', '-c', 'apt-mark showhold'), stdout=file)
 
     with open(directory + os.path.sep + 'osversion', 'w') as file, open(os.devnull, 'w') as devnull:
-       subprocess.run(('/bin/sh', '-c', 'lsb_release -sd'), stdout=file, stderr=devnull)
+       subprocess.run(('/bin/sh', '-c', 'lsb_release -ds'), stdout=file, stderr=devnull)
 
 def load_apt_snapshot(directory):
     apt_snapshot = {}

@@ -48,13 +48,13 @@ def _filter_apt_snapshot(apt_snapshot):
     exclude_pattern = '^lib.+$'
     exclude_regex = re.compile(exclude_pattern)
 
-    exclude_exception_pattern = '^(?:(?:lib.*(?:bin|tool|prog|script|exec|util|client|server|srv|plugin|ext|mod|core|base|extra|proto|conf|option|param|test)|libc(?:-|\d|$)|libnss-|libvirt-|libnetfilter-|libblockdev-).*|lib.*cli|libinput-pad-xtest|libapache2-mod-|libapache2-mpm-|libphp-jpgraph|libtiff-opengl)$'
+    exclude_exception_pattern = r'^(?:(?:lib.*(?:bin|tool|prog|script|exec|util|client|server|srv|plugin|ext|mod|core|base|extra|proto|conf|option|param|test)|libc(?:-|\d|$)|libnss-|libvirt-|libnetfilter-|libblockdev-).*|lib.*cli|libinput-pad-xtest|libapache2-mod-|libapache2-mpm-|libphp-jpgraph|libtiff-opengl)$'
     exclude_exception_regex = re.compile(exclude_exception_pattern)
 
-    replace_pattern = '^(lib[^\d]*)(\d+(?:[\.-]\d+)*)([^\d]*)$'
+    replace_pattern = r'^(lib[^\d]*)(\d+(?:[\.-]\d+)*)([^\d]*)$'
     replace_regex = re.compile(replace_pattern)
 
-    python_pattern = '^(python)(\d+(?:\.\d+)*|)(.*)$'
+    python_pattern = r'^(python)(\d+(?:\.\d+)*|)(.*)$'
     python_regex = re.compile(python_pattern)
 
     snapshot_types = set(apt_snapshot.keys())
@@ -74,9 +74,9 @@ def _filter_apt_snapshot(apt_snapshot):
                 replace_matches = replace_regex.match(package)
 
                 if replace_matches:
-                    if re.match('^\d+$', replace_matches.group(2)):
+                    if re.match(r'^\d+$', replace_matches.group(2)):
                         new_package = replace_regex.sub(r'\1X\3', package)
-                    elif re.match('^\d+[\.-]\d+$', replace_matches.group(2)):
+                    elif re.match(r'^\d+[\.-]\d+$', replace_matches.group(2)):
                         new_package = replace_regex.sub(r'\1X.X\3', package)
                     else:
                         new_package = replace_regex.sub(r'\1X.X.X\3', package)
@@ -149,7 +149,7 @@ def get_apt_snapshot_from_system():
         apt_snapshot = {
             'osversion': subprocess.run(('/bin/sh', '-c', 'lsb_release -ds'), stdout=subprocess.PIPE, stderr=devnull).stdout.decode('utf-8'),
             'selections': subprocess.run(('/bin/sh', '-c', 'dpkg --get-selections'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-            'seldetails': subprocess.run(('/bin/sh', '-c', 'dpkg -l | grep -P \'^\w+ \''), stdout=subprocess.PIPE).stdout.decode('utf-8'),
+            'seldetails': subprocess.run(('/bin/sh', '-c', 'dpkg -l | grep -P \'^\\w+ \''), stdout=subprocess.PIPE).stdout.decode('utf-8'),
             'selversions': subprocess.run(('/bin/sh', '-c', 'dpkg-query -W'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
             'obsconffiles': subprocess.run(('/bin/sh', '-c', 'dpkg-query -W -f=\'${Conffiles}\n\' | grep -P \' obsolete$\''), stdout=subprocess.PIPE).stdout.decode('utf-8'),
             'autos': subprocess.run(('/bin/sh', '-c', 'apt-mark showauto'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
@@ -171,7 +171,7 @@ def save_apt_snapshot_from_system(directory):
         subprocess.run(('/bin/sh', '-c', 'dpkg --get-selections'), stdout=file)
 
     with open(directory + os.path.sep + 'seldetails', 'w') as file:
-        subprocess.run(('/bin/sh', '-c', 'dpkg -l | grep -P \'^\w+ \''), stdout=file)
+        subprocess.run(('/bin/sh', '-c', 'dpkg -l | grep -P \'^\\w+ \''), stdout=file)
 
     with open(directory + os.path.sep + 'selversions', 'w') as file:
         subprocess.run(('/bin/sh', '-c', 'dpkg-query -W'), stdout=file)

@@ -17,11 +17,12 @@ def cmdline_args():
     p.add_argument('-s', '--summary', default=False, action='store_true', help='APT snapshot comparison summary')
     p.add_argument('-f', '--filter', default=False, action='store_true', help='filter APT snapshot comparison')
     p.add_argument('-r', '--reverse', default=False, action='store_true', help='reverse APT snapshot comparison')
+    p.add_argument('-q', '--quiet', default=False, action='store_true', help='do not output APT snapshot messages')
 
     return(p.parse_args())
 
 def _filter_apt_objdiff(apt_objdiff):
-    if 'autos' not in apt_objdiff['_change']:
+    if '_change' not in apt_objdiff or 'autos' not in apt_objdiff['_change']:
         return
 
     packages = set(apt_objdiff['_change']['autos']['_diff']['_delete'].keys())
@@ -226,16 +227,16 @@ def build_object_differential(from_objdict, to_objdict):
     if type(to_objdict) is not dict:
         raise TypeError('Expected dict for to_objdict')
 
-    objdiff = {
-        '_add': {},
-        '_delete': {},
-        '_change': {}
-    }
+    objdiff = {}
 
     for key in to_objdict:
         if key not in from_objdict:
+            if '_add' not in objdiff:
+                objdiff['_add'] = {}
             objdiff['_add'][key] = to_objdict[key]
         elif from_objdict[key] != to_objdict[key]: # safe_value_differs is ineffective against NaNs embedded in dict
+            if '_change' not in objdiff:
+                objdiff['_change'] = {}
             if type(from_objdict[key]) is dict and type(to_objdict[key]) is dict:
                 objdiff['_change'][key] = {
                    '_diff': build_object_differential(from_objdict[key], to_objdict[key])
@@ -248,6 +249,8 @@ def build_object_differential(from_objdict, to_objdict):
 
     for key in from_objdict:
         if key not in to_objdict:
+            if '_delete' not in objdiff:
+                objdiff['_delete'] = {}
             objdiff['_delete'][key] = from_objdict[key]
 
     return objdiff
@@ -267,37 +270,40 @@ if __name__ == '__main__':
     summary = args.summary
     filter = args.filter
     reverse = args.reverse
+    quiet = args.quiet
     source = args.source.rstrip(os.path.sep) if args.source is not None else None
     target = args.target.rstrip(os.path.sep)
 
-    print('Action: %s' % action)
+    if not quiet:
+        print('Action: %s' % action)
 
     if action == 'compare':
         if source is None:
             target, source = source, target
 
-        if source is None:
-            print('Source is set to current APT packages')
-        else:
-            print('Source: %s' % source)
+        if not quiet:
+            if source is None:
+                print('Source is set to current APT packages')
+            else:
+                print('Source: %s' % source)
 
-        if target is None:
-            print('Target is set to current APT packages')
-        else:
-            print('Target: %s' % target)
+            if target is None:
+                print('Target is set to current APT packages')
+            else:
+                print('Target: %s' % target)
 
-        print('Summary: %s' % summary)
+            print('Summary: %s' % summary)
 
-        print('Filter: %s' % summary)
+            print('Filter: %s' % filter)
 
-        print('Reverse: %s' % reverse)
+            print('Reverse: %s' % reverse)
 
         if source:
             source_snapshot = load_apt_snapshot(source)
         else:
             source_snapshot = get_apt_snapshot_from_system()
 
-        if target:         
+        if target:
             target_snapshot = load_apt_snapshot(target)
         else:
             target_snapshot = get_apt_snapshot_from_system()
@@ -315,16 +321,22 @@ if __name__ == '__main__':
             del target_snapshot['seldetails']
             del target_snapshot['selversions']
 
-        print('Differential:')
+        if not quiet:
+            print('Differential:')
 
         objdiff = build_object_differential(source_snapshot, target_snapshot)
 
         if filter:
             _filter_apt_objdiff(objdiff)
 
-        pprint(objdiff)
+        if not quiet:
+            pprint(objdiff)
+
+        if objdiff:
+            sys.exit(2)
 
     if action == 'save':
-        print('Target: %s' % target)
+        if not quiet:
+            print('Target: %s' % target)
 
         save_apt_snapshot_from_system(target)

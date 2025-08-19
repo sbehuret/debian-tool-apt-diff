@@ -146,16 +146,19 @@ def _process_apt_snapshot(apt_snapshot):
     return apt_snapshot
 
 def get_apt_snapshot_from_system():
+    # Check the grep command separately since a non-zero exit code may be normal later on
+    subprocess.run(('/bin/sh', '-c', 'grep -V'), stdout=subprocess.PIPE, check=True).stdout.decode('utf-8')
+
     with open(os.devnull, 'w') as devnull:
         apt_snapshot = {
-            'osversion': subprocess.run(('/bin/sh', '-c', 'lsb_release -ds'), stdout=subprocess.PIPE, stderr=devnull).stdout.decode('utf-8'),
-            'selections': subprocess.run(('/bin/sh', '-c', 'dpkg --get-selections'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-            'seldetails': subprocess.run(('/bin/sh', '-c', 'dpkg -l | grep -P \'^\\w+ \''), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-            'selversions': subprocess.run(('/bin/sh', '-c', 'dpkg-query -W'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-            'obsconffiles': subprocess.run(('/bin/sh', '-c', 'dpkg-query -W -f=\'${Conffiles}\n\' | grep -P \' obsolete$\''), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-            'autos': subprocess.run(('/bin/sh', '-c', 'apt-mark showauto'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-            'manuals': subprocess.run(('/bin/sh', '-c', 'apt-mark showmanual'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
-            'holds': subprocess.run(('/bin/sh', '-c', 'apt-mark showhold'), stdout=subprocess.PIPE).stdout.decode('utf-8'),
+            'osversion': subprocess.run(('/bin/sh', '-c', 'lsb_release -ds'), stdout=subprocess.PIPE, stderr=devnull, check=True).stdout.decode('utf-8'),
+            'selections': subprocess.run(('/bin/sh', '-c', 'dpkg --get-selections'), stdout=subprocess.PIPE, check=True).stdout.decode('utf-8'),
+            'seldetails': subprocess.run(('/bin/sh', '-c', 'dpkg -l | grep -P \'^\\w+ \''), stdout=subprocess.PIPE, check=True).stdout.decode('utf-8'),
+            'selversions': subprocess.run(('/bin/sh', '-c', 'dpkg-query -W'), stdout=subprocess.PIPE, check=True).stdout.decode('utf-8'),
+            'obsconffiles': subprocess.run(('/bin/sh', '-c', 'dpkg-query -W -f=\'${Conffiles}\n\' | grep -P \' obsolete$\' || true'), stdout=subprocess.PIPE, check=True).stdout.decode('utf-8'),
+            'autos': subprocess.run(('/bin/sh', '-c', 'apt-mark showauto'), stdout=subprocess.PIPE, check=True).stdout.decode('utf-8'),
+            'manuals': subprocess.run(('/bin/sh', '-c', 'apt-mark showmanual'), stdout=subprocess.PIPE, check=True).stdout.decode('utf-8'),
+            'holds': subprocess.run(('/bin/sh', '-c', 'apt-mark showhold'), stdout=subprocess.PIPE, check=True).stdout.decode('utf-8'),
         }
 
     _process_apt_snapshot(apt_snapshot)
@@ -298,15 +301,23 @@ if __name__ == '__main__':
 
             print('Reverse: %s' % reverse)
 
-        if source:
-            source_snapshot = load_apt_snapshot(source)
-        else:
-            source_snapshot = get_apt_snapshot_from_system()
+        try:
+            if source:
+                source_snapshot = load_apt_snapshot(source)
+            else:
+                source_snapshot = get_apt_snapshot_from_system()
+        except Exception as e:
+            sys.stderr.write('Unable to load source APT packages: %s\n' % str(e))
+            sys.exit(1)
 
-        if target:
-            target_snapshot = load_apt_snapshot(target)
-        else:
-            target_snapshot = get_apt_snapshot_from_system()
+        try:
+            if target:
+                target_snapshot = load_apt_snapshot(target)
+            else:
+                target_snapshot = get_apt_snapshot_from_system()
+        except Exception as e:
+            sys.stderr.write('Unable to load target APT packages: %s\n' % str(e))
+            sys.exit(1)
 
         if reverse:
             target_snapshot, source_snapshot = source_snapshot, target_snapshot

@@ -7,7 +7,7 @@ Installation: The main file apt-diff.py and its symlink apt-diff should be copie
 
 How to use: apt-diff --help
 
-> usage: apt-diff [-h] [-s] [-f] [-r] [{compare,save}] [target] [source]
+> usage: apt-diff [-h] [-s] [-f] [-r] [-q] [{compare,save}] [target] [source]
 > 
 > Compare or save apt packages
 >
@@ -20,4 +20,5 @@ How to use: apt-diff --help
 > &ensp;-h, --help&emsp;show this help message and exit<br />
 > &ensp;-s, --summary&emsp;APT snapshot comparison summary<br />
 > &ensp;-f, --filter&emsp;filter APT snapshot comparison<br />
-> &ensp;-r, --reverse&emsp;reverse APT snapshot comparison
+> &ensp;-r, --reverse&emsp;reverse APT snapshot comparison<br />
+> &ensp;-q, --quiet&emsp;do not output APT snapshot messages

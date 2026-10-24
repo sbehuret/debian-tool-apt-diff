@@ -3,7 +3,7 @@ apt-diff: Compare and save APT packages in a Debian-based system
 
 Summary: apt-diff is a tool to compare and save listings of APT packages installed in a Debian-based system.
 
-Installation: The main file apt-diff.py and its symlink apt-diff should be copied into /usr/local/bin. Python 3 is required.
+Installation: The main file apt-diff should be copied into /usr/local/bin. Python 3 (python3 package) and the lsb_release utility (lsb-release package) are required.
 
 How to use: apt-diff --help
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 import os
 import sys
@@ -22,28 +22,31 @@ def cmdline_args():
     return(p.parse_args())
 
 def _filter_apt_objdiff(apt_objdiff):
-    if '_change' not in apt_objdiff or 'autos' not in apt_objdiff['_change']:
-        return
+    try:
+        packages = set(apt_objdiff['_change']['autos']['_diff']['_delete'].keys())
 
-    packages = set(apt_objdiff['_change']['autos']['_diff']['_delete'].keys())
+        for package in packages:
+            try:
+                if package in apt_objdiff['_change']['manuals']['_diff']['_add']:
+                    apt_objdiff['_change']['autos']['_diff']['_delete'][package] = '-> manual'
+                    apt_objdiff['_change']['manuals']['_diff']['_add'][package] = '<- auto'
+            except KeyError:
+                pass
+    except KeyError:
+        pass
 
-    for package in packages:
-        try:
-            if package in apt_objdiff['_change']['manuals']['_diff']['_add']:
-                del apt_objdiff['_change']['autos']['_diff']['_delete'][package]
-                apt_objdiff['_change']['manuals']['_diff']['_add'][package] = 'Was Auto'
-        except KeyError:
-            pass
+    try:
+        packages = set(apt_objdiff['_change']['autos']['_diff']['_add'].keys())
 
-    packages = set(apt_objdiff['_change']['autos']['_diff']['_add'].keys())
-
-    for package in packages:
-        try:
-            if package in apt_objdiff['_change']['manuals']['_diff']['_delete']:
-                del apt_objdiff['_change']['autos']['_diff']['_add'][package]
-                apt_objdiff['_change']['manuals']['_diff']['_delete'][package] = 'Now Auto'
-        except KeyError:
-            pass
+        for package in packages:
+            try:
+                if package in apt_objdiff['_change']['manuals']['_diff']['_delete']:
+                    apt_objdiff['_change']['autos']['_diff']['_add'][package] = '<- manual'
+                    apt_objdiff['_change']['manuals']['_diff']['_delete'][package] = '-> auto'
+            except KeyError:
+                pass
+    except KeyError:
+        pass
 
 def _filter_apt_snapshot(apt_snapshot):
     exclude_pattern = '^lib.+$'
@@ -61,7 +64,7 @@ def _filter_apt_snapshot(apt_snapshot):
     snapshot_types = set(apt_snapshot.keys())
 
     for snapshot_type in snapshot_types:
-        if snapshot_type in ('autos', 'selections', 'selversions', 'seldetails'):
+        if snapshot_type in ('selections', 'selversions', 'seldetails'):
             packages = set(apt_snapshot[snapshot_type].keys())
 
             for package in packages:
